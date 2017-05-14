@@ -19,9 +19,12 @@ import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 
+import com.penn.ppjb.Event.UserLoginEvent;
+import com.penn.ppjb.Event.UserLogoutEvent;
 import com.penn.ppjb.databinding.ActivityMainBinding;
+import com.penn.ppjb.util.CurUser;
 import com.penn.ppjb.util.PPHelper;
-import com.penn.ppjb.util.ToggleToolBarEvent;
+import com.penn.ppjb.Event.ToggleToolBarEvent;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -30,13 +33,10 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.penn.ppjb.R.string.login;
-
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private ActivityMainBinding binding;
 
-    private boolean login = false;
     private Menu menu;
 
     static class Adapter extends FragmentPagerAdapter {
@@ -80,21 +80,6 @@ public class MainActivity extends AppCompatActivity
         EventBus.getDefault().unregister(this);
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void ToggleToolBarEvent(ToggleToolBarEvent event) {
-        if (event.show) {
-            binding.mainToolbar.animate()
-                    .translationY(0)
-                    .setDuration(100L)
-                    .setInterpolator(new LinearInterpolator());
-        } else {
-            binding.mainToolbar.animate()
-                    .translationY(PPHelper.getStatusBarAddActionBarHeight(this) * -1)
-                    .setDuration(100L)
-                    .setInterpolator(new LinearInterpolator());
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -135,19 +120,14 @@ public class MainActivity extends AppCompatActivity
         adapter.addFragment(new DashboardFragment(), "Category 1");
         adapter.addFragment(new NearbyFragment(), "Category 2");
         binding.mainViewPager.setAdapter(adapter);
-
-        binding.mainViewPager.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.v("pplog", "binding.mainDrawerLayout.setOnClickListener");
-            }
-        });
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         this.menu = menu;
         getMenuInflater().inflate(R.menu.main, menu);
+        setupMenuIcon();
+
         return true;
     }
 
@@ -155,20 +135,54 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.login_out:
-                login_out();
+                loginOut();
                 return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    private void login_out() {
-        if (login) {
-            login = false;
-            menu.findItem(R.id.login_out).setIcon(getResources().getDrawable(R.drawable.ic_person_black_24dp));
+    //-----helper-----
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void ToggleToolBarEvent(ToggleToolBarEvent event) {
+        if (event.show) {
+            binding.mainToolbar.animate()
+                    .translationY(0)
+                    .setDuration(100L)
+                    .setInterpolator(new LinearInterpolator());
         } else {
-            login = true;
+            binding.mainToolbar.animate()
+                    .translationY(PPHelper.getStatusBarAddActionBarHeight(this) * -1)
+                    .setDuration(100L)
+                    .setInterpolator(new LinearInterpolator());
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void LoginEvent(UserLoginEvent event) {
+        setupMenuIcon();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void LoginEvent(UserLogoutEvent event) {
+        setupMenuIcon();
+    }
+    
+    private void loginOut() {
+        if (CurUser.logined()) {
+            CurUser.clear();
+            EventBus.getDefault().post(new UserLoginEvent());
+        } else {
+            CurUser.getInstance();
+            EventBus.getDefault().post(new UserLogoutEvent());
+        }
+    }
+
+    private void setupMenuIcon() {
+        if (CurUser.logined()) {
             menu.findItem(R.id.login_out).setIcon(getResources().getDrawable(R.drawable.ic_exit_to_app_black_24dp));
+        } else {
+            menu.findItem(R.id.login_out).setIcon(getResources().getDrawable(R.drawable.ic_person_black_24dp));
         }
     }
 

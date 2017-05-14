@@ -4,6 +4,8 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 
+import com.penn.ppjb.Event.ToggleToolBarEvent;
+
 import org.greenrobot.eventbus.EventBus;
 
 import java.util.concurrent.TimeUnit;
